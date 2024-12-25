@@ -1,0 +1,36 @@
+services:
+  postgresql-db-reservation:
+    image: postgres:latest
+    container_name: postgres-test
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: test_reservation_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgresql-db-reservation-test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      retries: 5
+
+  reservation-service-test:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: reservation-service-test
+    volumes:
+      - .:/workspace
+      - ${HOME}/.m2:/root/.m2
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-test:5432/test_reservation_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=admin
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    working_dir: /workspace
+    depends_on:
+      - postgresql-db-reservation
+    command: |
+      chmod +x /workspace/wait-for-it.sh && ./wait-for-it.sh postgres-test:5432 -- mvn clean test
+
+volumes:
+  postgresql-db-reservation-test:
