@@ -1,0 +1,27 @@
+services:
+  postgresql-db-reservation:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: reservation_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgresql-db-reservation:/var/lib/postgresql/data
+
+  reservation-service:
+    build: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql-db-reservation:5432/reservation_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgresql-db-reservation
+    restart: on-failure
+
+volumes:
+  postgresql-db-reservation:

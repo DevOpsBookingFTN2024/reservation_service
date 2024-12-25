@@ -1,0 +1,152 @@
+name: reservation service merge workflow
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/reservation_service
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Install Dependencies and Build
+        run: mvn clean install -DskipTests
+        working-directory: .
+
+      - name: Package Application
+        run: mvn package -DskipTests
+        working-directory: .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker=${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      - name: Run Docker Compose for Tests
+        run: docker compose -f ./docker-compose.test.yml up --abort-on-container-exit
+
+      - name: Clean up
+        run: docker compose -f ./docker-compose.test.yml down
+
+     
+
+  versioning:
+
+    name: Bump to new version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_version: ${{ steps.bump-version.outputs.new_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+
+      - name: Bump version and push tag
+        id: bump-version
+        uses: anothrNick/github-tag-action@master
+        env:
+          VERBOSE: true
+          GITHUB_TOKEN: ${{ secrets.BOOKING_ORG_TOKEN }}
+          RELEASE_BRANCHES : main, develop
+          MAJOR_STRING_TOKEN: major
+          MINOR_STRING_TOKEN: feat
+          PATCH_STRING_TOKEN: fix
+          DEBUG: "semantic-release:*"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOOKING_ORG_TOKEN }}
+          tag: ${{ steps.bump-version.outputs.new_tag }}
+        run: |
+          if [[ "$tag" != v* ]]; then
+            title="v$tag"
+          else
+            title="$tag"
+          fi
+          gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="$title" \
+              --generate-notes 
+    
+
+  push-to-ghcr:
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Log into ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.BOOKING_ORG_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY}}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{ needs.versioning.outputs.new_version }}
+
+      - name: kaniko
+        uses: int128/kaniko-action@v1
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache: true
+          cache-repository: ghcr.io/${{ github.repository }}/cache

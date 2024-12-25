@@ -1,0 +1,64 @@
+name: reservation service pr workflow
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/reservation_service
+
+on:
+  pull_request: 
+    types: [ opened, reopened, synchronize ]
+    branches:
+      - main
+      - develop
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    name: PR build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+        
+      - name: Install Dependencies and Build
+        run: mvn clean install -DskipTests
+        working-directory: .
+
+      - name: Package Application
+        run: mvn package -DskipTests
+        working-directory: .
+            
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker=${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      - name: Run Docker Compose for Tests
+        run: docker compose -f ./docker-compose.test.yml up --abort-on-container-exit
+
+      - name: Clean up
+        run: docker compose -f ./docker-compose.test.yml down
