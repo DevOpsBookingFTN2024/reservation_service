@@ -17,12 +17,20 @@ public class ReservationController {
     private ReservationService reservationService;
 
     @PostMapping("/create/{accommodationId}")
-    public ResponseEntity<?> createReservation(@PathVariable UUID accommodationId,
-                                               @Valid @RequestBody CreateReservationRequest createReservationRequest,
-                                               @RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<?> createReservationGuest(@PathVariable UUID accommodationId,
+                                                    @Valid @RequestBody CreateReservationRequest createReservationRequest,
+                                                    @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        MessageResponse messageResponse = reservationService.createReservation(
+        MessageResponse messageResponse = reservationService.createReservationGuest(
                 accommodationId, createReservationRequest, jwtToken);
         return ResponseEntity.ok(messageResponse );
+    }
+
+    @PutMapping("/cancel/{reservationId}")
+    public ResponseEntity<?> cancelReservationGuest(@PathVariable UUID reservationId,
+                                                    @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        MessageResponse messageResponse = reservationService.cancelReservationGuest(reservationId, jwtToken);
+        return ResponseEntity.ok(messageResponse);
     }
 }

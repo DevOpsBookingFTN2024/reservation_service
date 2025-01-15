@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import uns.ac.rs.reservation_service.dto.AccommodationDTO;
 import uns.ac.rs.reservation_service.dto.AvailabilityDTO;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,6 +57,26 @@ public class AccommodationServiceClient {
                     .uri("/availabilities/reserve")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken)
                     .bodyValue(availabilityDTOs)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to connect to AccommodationService: ", e);
+        }
+    }
+
+    public void releaseAvailabilities(UUID accommodationId,
+                                      LocalDate dateFrom,
+                                      LocalDate dateTo,
+                                      String jwtToken) {
+        try {
+            webClient.put()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/availabilities/release/{accommodationId}")
+                            .queryParam("dateFrom", dateFrom)
+                            .queryParam("dateTo", dateTo)
+                            .build(accommodationId))
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken)
                     .retrieve()
                     .toBodilessEntity()
                     .block();

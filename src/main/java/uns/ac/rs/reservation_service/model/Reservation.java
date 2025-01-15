@@ -27,8 +27,11 @@ public class Reservation {
     @Column(name = "id_accommodation")
     private UUID idAccommodation;
 
-    @Column(name = "dates")
-    private Set<LocalDate> dates;
+    @Column(name = "date_from")
+    private LocalDate dateFrom;
+
+    @Column(name = "date_to")
+    private LocalDate dateTo;
 
     @Column(name = "number_of_guests")
     private Integer numberOfGuests;
@@ -47,11 +50,13 @@ public class Reservation {
 
     public Reservation(String guest,
                        UUID idAccommodation,
-                       Set<LocalDate> dates,
+                       LocalDate dateFrom,
+                       LocalDate dateTo,
                        Integer numberOfGuests) {
         this.guest = guest;
         this.idAccommodation = idAccommodation;
-        this.dates = dates;
+        this.dateFrom = dateFrom;
+        this.dateTo = dateTo;
         this.numberOfGuests = numberOfGuests;
     }
 }
