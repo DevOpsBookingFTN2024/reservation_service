@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
-import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -19,7 +18,9 @@ public class ReservationDTO {
 
     private UUID idAccommodation;
 
-    private Set<LocalDate> dates;
+    private LocalDate dateFrom;
+
+    private LocalDate dateTo;
 
     private Integer numberOfGuests;
 
