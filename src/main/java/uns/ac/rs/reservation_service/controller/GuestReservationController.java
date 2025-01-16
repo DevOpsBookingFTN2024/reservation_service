@@ -1,11 +1,15 @@
 package uns.ac.rs.reservation_service.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uns.ac.rs.reservation_service.dto.ReservationDTO;
+import uns.ac.rs.reservation_service.dto.request.CreateReservationRequest;
+import uns.ac.rs.reservation_service.dto.response.MessageResponse;
 import uns.ac.rs.reservation_service.service.GuestReservationService;
 import java.util.List;
+import java.util.UUID;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -13,6 +17,24 @@ import java.util.List;
 public class GuestReservationController {
     @Autowired
     private GuestReservationService guestReservationService;
+
+    @PostMapping("/create/{accommodationId}")
+    public ResponseEntity<?> createReservationGuest(@PathVariable UUID accommodationId,
+                                                    @Valid @RequestBody CreateReservationRequest createReservationRequest,
+                                                    @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        MessageResponse messageResponse = guestReservationService.createReservationGuest(
+                accommodationId, createReservationRequest, jwtToken);
+        return ResponseEntity.ok(messageResponse);
+    }
+
+    @PutMapping("/cancel/{reservationId}")
+    public ResponseEntity<?> cancelReservationGuest(@PathVariable UUID reservationId,
+                                                    @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        MessageResponse messageResponse = guestReservationService.cancelReservationGuest(reservationId, jwtToken);
+        return ResponseEntity.ok(messageResponse);
+    }
 
     @GetMapping("/pending")
     public ResponseEntity<?> getMyPendingReservationsGuest(@RequestHeader("Authorization") String authorizationHeader) {
