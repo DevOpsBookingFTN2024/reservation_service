@@ -40,11 +40,9 @@ public class GuestReservationService {
             throw new IllegalArgumentException("End date must be after the start date.");
         }
         Set<LocalDate> dates = createReservationRequest.getDateFrom()
-                .datesUntil(createReservationRequest.getDateTo().plusDays(1))
+                .datesUntil(createReservationRequest.getDateTo())
                 .collect(Collectors.toSet());
-        ////////////////////////////////////////
-        System.out.println(dates);
-        ////////////////////////////////////////
+
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");

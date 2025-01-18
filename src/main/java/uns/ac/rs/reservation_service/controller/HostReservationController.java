@@ -15,7 +15,7 @@ public class HostReservationController {
     private HostReservationService hostReservationService;
 
     @PutMapping("/accept/{reservationId}")
-    public ResponseEntity<?> acceptReservationHost (@PathVariable UUID reservationId,
+    public ResponseEntity<?> acceptReservationHost(@PathVariable UUID reservationId,
                                                     @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         MessageResponse messageResponse = hostReservationService.acceptReservationHost(
@@ -24,7 +24,7 @@ public class HostReservationController {
     }
 
     @PutMapping("/decline/{reservationId}")
-    public ResponseEntity<?> declineReservationHost (@PathVariable UUID reservationId,
+    public ResponseEntity<?> declineReservationHost(@PathVariable UUID reservationId,
                                                     @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         MessageResponse messageResponse = hostReservationService.declineReservationHost(
