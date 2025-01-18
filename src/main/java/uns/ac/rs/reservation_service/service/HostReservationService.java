@@ -46,14 +46,14 @@ public class HostReservationService {
         if (accommodationDetails == null) {
             throw new IllegalStateException("Accommodation details could not be retrieved.");
         }
-
         if (!Objects.equals(accommodationDetails.getHost(), userDetails.getUsername())) {
             throw new SecurityException("User is not the owner of this accommodation.");
         }
 
         Set<LocalDate> dates = reservation.getDateFrom()
-                .datesUntil(reservation.getDateTo().plusDays(1))
+                .datesUntil(reservation.getDateTo())
                 .collect(Collectors.toSet());
+
         List<AvailabilityDTO> availabilities = accommodationServiceClient
                 .getAvailabilitiesDetailsByAccommodation(reservation.getIdAccommodation());
 
@@ -100,6 +100,7 @@ public class HostReservationService {
             accommodationServiceClient.reserveAvailabilities(convertedAvailabilities, jwtToken);
 
             reservation.setIsAccepted(true);
+            reservation.setIsDeclined(false);
 
             reservationRepository.save(reservation);
             return new MessageResponse("Reservation accepted successfully.");
