@@ -13,9 +13,7 @@ public class ReservationMapper {
                 .dateTo(reservation.getDateTo())
                 .numberOfGuests(reservation.getNumberOfGuests())
                 .totalPrice(reservation.getTotalPrice())
-                .isAccepted(reservation.getIsAccepted())
-                .isDeclined(reservation.getIsDeclined())
-                .isCancelled(reservation.getIsCancelled())
+                .reservationStatus(reservation.getReservationStatus().name())
                 .build();
     }
 }

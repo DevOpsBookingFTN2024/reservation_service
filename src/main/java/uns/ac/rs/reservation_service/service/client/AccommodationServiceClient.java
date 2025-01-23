@@ -1,4 +1,4 @@
-package uns.ac.rs.reservation_service.service;
+package uns.ac.rs.reservation_service.service.client;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

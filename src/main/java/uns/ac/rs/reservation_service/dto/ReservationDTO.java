@@ -26,9 +26,5 @@ public class ReservationDTO {
 
     private Double totalPrice;
 
-    private Boolean isAccepted;
-
-    private Boolean isDeclined;
-
-    private Boolean isCancelled;
+    private String reservationStatus;
 }
