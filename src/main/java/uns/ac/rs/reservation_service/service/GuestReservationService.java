@@ -164,7 +164,6 @@ public class GuestReservationService {
     }
 
     //rezervacija je na cekanju
-    //datum pocetka rezervacije je posle danasnjeg datuma
     public List<ReservationDTO> getMyPendingReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
@@ -177,13 +176,11 @@ public class GuestReservationService {
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
-                .filter(reservation -> reservation.getDateFrom().isAfter(LocalDate.now()))
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }
 
     //rezervacija je prihvacena
-    //datum kraja rezervacije nije pre danasnjeg datuma
     public List<ReservationDTO> getMyAcceptedReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
@@ -196,36 +193,14 @@ public class GuestReservationService {
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.ACCEPTED)
-                .filter(reservation -> !reservation.getDateTo().isBefore(LocalDate.now()))
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }
 
     //rezervacija je odbijena
-    //ili
-    //rezervacija je na cekanju
-    //datum pocetka rezervacije nije posle danasnjeg datuma
-    public List<ReservationDTO> getMyDeclinedReservationsGuest(String jwtToken) {
-        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
-        if (userDetails == null) {
-            throw new IllegalStateException("User details could not be retrieved.");
-        }
-        if (!userDetails.getRoles().contains("ROLE_GUEST")) {
-            throw new SecurityException("User do not have permission for this action.");
-        }
-
-        return reservationRepository.findByGuest(userDetails.getUsername())
-                .stream()
-                .filter(reservation ->
-                        reservation.getReservationStatus() == EReservationStatus.DECLINED ||
-                        (reservation.getReservationStatus() == EReservationStatus.PENDING &&
-                        !reservation.getDateFrom().isAfter(LocalDate.now())))
-                .map(ReservationMapper::toReservationDTO)
-                .toList();
-    }
-
     //rezervacija je otkazana
-    public List<ReservationDTO> getMyCancelledReservationsGuest(String jwtToken) {
+    //rezervacija je uspesno prosla
+    public List<ReservationDTO> getMyPastReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -236,26 +211,9 @@ public class GuestReservationService {
 
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
-                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.CANCELLED)
-                .map(ReservationMapper::toReservationDTO)
-                .toList();
-    }
-
-    //rezervacija je prihvacena
-    //datum kraja rezervacije je pre danasnjeg datuma
-    public List<ReservationDTO> getMyPassedReservationsGuest(String jwtToken) {
-        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
-        if (userDetails == null) {
-            throw new IllegalStateException("User details could not be retrieved.");
-        }
-        if (!userDetails.getRoles().contains("ROLE_GUEST")) {
-            throw new SecurityException("User do not have permission for this action.");
-        }
-
-        return reservationRepository.findByGuest(userDetails.getUsername())
-                .stream()
-                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.ACCEPTED)
-                .filter(reservation -> reservation.getDateTo().isBefore(LocalDate.now()))
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.DECLINED ||
+                                       reservation.getReservationStatus() == EReservationStatus.CANCELLED ||
+                                       reservation.getReservationStatus() == EReservationStatus.PASSED)
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }

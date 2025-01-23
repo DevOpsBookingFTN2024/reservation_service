@@ -4,5 +4,6 @@ public enum EReservationStatus {
     PENDING,
     ACCEPTED,
     DECLINED,
-    CANCELLED
+    CANCELLED,
+    PASSED
 }
