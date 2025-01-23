@@ -8,9 +8,12 @@ import uns.ac.rs.reservation_service.dto.ReservationDTO;
 import uns.ac.rs.reservation_service.dto.request.CreateReservationRequest;
 import uns.ac.rs.reservation_service.dto.response.MessageResponse;
 import uns.ac.rs.reservation_service.mapper.ReservationMapper;
+import uns.ac.rs.reservation_service.model.EReservationStatus;
 import uns.ac.rs.reservation_service.model.Reservation;
 import uns.ac.rs.reservation_service.repository.ReservationRepository;
 import uns.ac.rs.reservation_service.dto.UserDTO;
+import uns.ac.rs.reservation_service.service.client.AccommodationServiceClient;
+import uns.ac.rs.reservation_service.service.client.UserServiceClient;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -122,13 +125,10 @@ public class GuestReservationService {
 
         if (Objects.equals(accommodationDetails.getApprovalStrategy(), "AUTOMATIC")) {
             accommodationServiceClient.reserveAvailabilities(convertedAvailabilities, jwtToken);
-            newReservation.setIsAccepted(true);
+            newReservation.setReservationStatus(EReservationStatus.ACCEPTED);
         } else {
-            newReservation.setIsAccepted(false);
+            newReservation.setReservationStatus(EReservationStatus.PENDING);
         }
-
-        newReservation.setIsDeclined(false);
-        newReservation.setIsCancelled(false);
 
         reservationRepository.save(newReservation);
         return new MessageResponse("Reservation created successfully.");
@@ -150,11 +150,11 @@ public class GuestReservationService {
             throw new SecurityException("User did not create this reservation.");
         }
 
-        if (reservation.getIsAccepted() && !reservation.getIsCancelled() &&
+        if ((reservation.getReservationStatus() == EReservationStatus.ACCEPTED) &&
                 LocalDate.now().isBefore(reservation.getDateFrom().minusDays(2))) {
             accommodationServiceClient.releaseAvailabilities(reservation.getIdAccommodation(),
                     reservation.getDateFrom(), reservation.getDateTo(), jwtToken);
-            reservation.setIsCancelled(true);
+            reservation.setReservationStatus(EReservationStatus.CANCELLED);
 
             reservationRepository.save(reservation);
             return new MessageResponse("Reservation cancelled successfully.");
@@ -163,9 +163,7 @@ public class GuestReservationService {
         }
     }
 
-    //rezervacija nije prihvacena
-    //rezervacija nije odbijena
-    //rezervacija nije otkazana
+    //rezervacija je na cekanju
     //datum pocetka rezervacije je posle danasnjeg datuma
     public List<ReservationDTO> getMyPendingReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
@@ -178,16 +176,13 @@ public class GuestReservationService {
 
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsAccepted()))
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsDeclined()))
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsCancelled()))
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
                 .filter(reservation -> reservation.getDateFrom().isAfter(LocalDate.now()))
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }
 
     //rezervacija je prihvacena
-    //rezervacija nije otkazana
     //datum kraja rezervacije nije pre danasnjeg datuma
     public List<ReservationDTO> getMyAcceptedReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
@@ -200,14 +195,16 @@ public class GuestReservationService {
 
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
-                .filter(reservation -> Boolean.TRUE.equals(reservation.getIsAccepted()))
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsCancelled()))
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.ACCEPTED)
                 .filter(reservation -> !reservation.getDateTo().isBefore(LocalDate.now()))
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }
 
     //rezervacija je odbijena
+    //ili
+    //rezervacija je na cekanju
+    //datum pocetka rezervacije nije posle danasnjeg datuma
     public List<ReservationDTO> getMyDeclinedReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
@@ -219,7 +216,10 @@ public class GuestReservationService {
 
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
-                .filter(reservation -> Boolean.TRUE.equals(reservation.getIsDeclined()))
+                .filter(reservation ->
+                        reservation.getReservationStatus() == EReservationStatus.DECLINED ||
+                        (reservation.getReservationStatus() == EReservationStatus.PENDING &&
+                        !reservation.getDateFrom().isAfter(LocalDate.now())))
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }
@@ -236,13 +236,12 @@ public class GuestReservationService {
 
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
-                .filter(reservation -> Boolean.TRUE.equals(reservation.getIsCancelled()))
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.CANCELLED)
                 .map(ReservationMapper::toReservationDTO)
                 .toList();
     }
 
     //rezervacija je prihvacena
-    //rezervacija nije otkazana
     //datum kraja rezervacije je pre danasnjeg datuma
     public List<ReservationDTO> getMyPassedReservationsGuest(String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
@@ -255,8 +254,7 @@ public class GuestReservationService {
 
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
-                .filter(reservation -> Boolean.TRUE.equals(reservation.getIsAccepted()))
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsCancelled()))
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.ACCEPTED)
                 .filter(reservation -> reservation.getDateTo().isBefore(LocalDate.now()))
                 .map(ReservationMapper::toReservationDTO)
                 .toList();

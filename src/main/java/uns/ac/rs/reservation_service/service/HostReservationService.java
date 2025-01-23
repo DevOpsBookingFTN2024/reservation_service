@@ -8,8 +8,11 @@ import uns.ac.rs.reservation_service.dto.ReservationDTO;
 import uns.ac.rs.reservation_service.dto.UserDTO;
 import uns.ac.rs.reservation_service.dto.response.MessageResponse;
 import uns.ac.rs.reservation_service.mapper.ReservationMapper;
+import uns.ac.rs.reservation_service.model.EReservationStatus;
 import uns.ac.rs.reservation_service.model.Reservation;
 import uns.ac.rs.reservation_service.repository.ReservationRepository;
+import uns.ac.rs.reservation_service.service.client.AccommodationServiceClient;
+import uns.ac.rs.reservation_service.service.client.UserServiceClient;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -79,19 +82,21 @@ public class HostReservationService {
                 .map(Optional::get)
                 .toList();
 
-        if (!reservation.getIsAccepted() && !reservation.getIsDeclined() && !reservation.getIsCancelled() &&
+        if ((reservation.getReservationStatus() == EReservationStatus.PENDING) &&
                 reservation.getDateFrom().isAfter(LocalDate.now())) {
             List<ReservationDTO> reservationsToCheck =
                     getAllPendingReservationsByAccommodation(reservation.getIdAccommodation());
 
             for (ReservationDTO dto : reservationsToCheck) {
-                if (reservationsOverlap(reservation.getDateFrom(), reservation.getDateTo(), dto.getDateFrom(),
-                        dto.getDateTo())) {
+                if (dto.getId().equals(reservation.getId())) continue;
+
+                if (reservationsOverlap(reservation.getDateFrom(), reservation.getDateTo(),
+                                        dto.getDateFrom(), dto.getDateTo())) {
                     Reservation reservationToDecline = reservationRepository.findById(dto.getId())
                             .orElseThrow(() ->
                                     new NoSuchElementException("Reservation not found with id: " + dto.getId()));
 
-                    reservationToDecline.setIsDeclined(true);
+                    reservationToDecline.setReservationStatus(EReservationStatus.DECLINED);
 
                     reservationRepository.save(reservationToDecline);
                 }
@@ -99,8 +104,7 @@ public class HostReservationService {
 
             accommodationServiceClient.reserveAvailabilities(convertedAvailabilities, jwtToken);
 
-            reservation.setIsAccepted(true);
-            reservation.setIsDeclined(false);
+            reservation.setReservationStatus(EReservationStatus.ACCEPTED);
 
             reservationRepository.save(reservation);
             return new MessageResponse("Reservation accepted successfully.");
@@ -131,9 +135,9 @@ public class HostReservationService {
             throw new SecurityException("User is not the owner of this accommodation.");
         }
 
-        if (!reservation.getIsAccepted() && !reservation.getIsDeclined() && !reservation.getIsCancelled() &&
+        if ((reservation.getReservationStatus() == EReservationStatus.PENDING) &&
                 reservation.getDateFrom().isAfter(LocalDate.now())) {
-            reservation.setIsDeclined(true);
+            reservation.setReservationStatus(EReservationStatus.DECLINED);
 
             reservationRepository.save(reservation);
             return new MessageResponse("Reservation declined successfully.");
@@ -142,12 +146,12 @@ public class HostReservationService {
         }
     }
 
+    //rezervacija je na cekanju
+    //datum pocetka rezervacije je posle danasnjeg datuma
     public List<ReservationDTO> getAllPendingReservationsByAccommodation(UUID accommodationId) {
         return reservationRepository.findByIdAccommodation(accommodationId)
                 .stream()
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsAccepted()))
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsDeclined()))
-                .filter(reservation -> Boolean.FALSE.equals(reservation.getIsCancelled()))
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
                 .filter(reservation -> reservation.getDateFrom().isAfter(LocalDate.now()))
                 .map(ReservationMapper::toReservationDTO)
                 .collect(Collectors.toList());

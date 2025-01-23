@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -39,14 +38,9 @@ public class Reservation {
     @Column(name = "total_price")
     private Double totalPrice;
 
-    @Column(name = "is_accepted")
-    private Boolean isAccepted;
-
-    @Column(name = "is_declined")
-    private Boolean isDeclined;
-
-    @Column(name = "is_cancelled")
-    private Boolean isCancelled;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reservation_status")
+    private EReservationStatus reservationStatus;
 
     public Reservation(String guest,
                        UUID idAccommodation,
