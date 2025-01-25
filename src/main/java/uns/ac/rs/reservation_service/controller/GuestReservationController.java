@@ -37,23 +37,46 @@ public class GuestReservationController {
     }
 
     @GetMapping("/pending")
-    public ResponseEntity<?> getMyPendingReservationsGuest(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<?> getMyPendingReservationsGuest(@RequestHeader("Authorization") String authorizationHeader,
+                             @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        List<ReservationDTO> pendingReservations = guestReservationService.getMyPendingReservationsGuest(jwtToken);
+        List<ReservationDTO> pendingReservations = guestReservationService
+                .getMyPendingReservationsGuest(jwtToken, idAccommodation);
         return ResponseEntity.ok(pendingReservations);
     }
 
     @GetMapping("/accepted")
-    public ResponseEntity<?> getMyAcceptedReservationsGuest(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<?> getMyAcceptedReservationsGuest(@RequestHeader("Authorization") String authorizationHeader,
+                             @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        List<ReservationDTO> acceptedReservations = guestReservationService.getMyAcceptedReservationsGuest(jwtToken);
+        List<ReservationDTO> acceptedReservations = guestReservationService
+                .getMyAcceptedReservationsGuest(jwtToken, idAccommodation);
         return ResponseEntity.ok(acceptedReservations);
     }
 
     @GetMapping("/past")
-    public ResponseEntity<?> getMyPastReservationsGuest(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<?> getMyPastReservationsGuest(@RequestHeader("Authorization") String authorizationHeader,
+                             @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        List<ReservationDTO> declinedReservations = guestReservationService.getMyPastReservationsGuest(jwtToken);
+        List<ReservationDTO> declinedReservations = guestReservationService
+                .getMyPastReservationsGuest(jwtToken, idAccommodation);
         return ResponseEntity.ok(declinedReservations);
+    }
+
+    @GetMapping("/has-successfully-passed-host/{host}")
+    public ResponseEntity<?> isGuestHasSuccessfullyPassedReservationHost(@PathVariable String host,
+                             @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        boolean result = guestReservationService.isGuestHasSuccessfullyPassedReservationHost(host, jwtToken);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/has-successfully-passed-accommodation/{idAccommodation}")
+    public ResponseEntity<?> isGuestHasSuccessfullyPassedReservationAccommodation(@PathVariable UUID idAccommodation,
+                             @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        boolean result = guestReservationService
+                .isGuestHasSuccessfullyPassedReservationAccommodation(idAccommodation, jwtToken);
+        return ResponseEntity.ok(result);
     }
 }

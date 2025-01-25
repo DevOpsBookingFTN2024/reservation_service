@@ -23,6 +23,9 @@ public class Reservation {
     @Column(name = "guest")
     private String guest;
 
+    @Column(name = "host")
+    private String host;
+
     @Column(name = "id_accommodation")
     private UUID idAccommodation;
 
@@ -43,11 +46,13 @@ public class Reservation {
     private EReservationStatus reservationStatus;
 
     public Reservation(String guest,
+                       String host,
                        UUID idAccommodation,
                        LocalDate dateFrom,
                        LocalDate dateTo,
                        Integer numberOfGuests) {
         this.guest = guest;
+        this.host = host;
         this.idAccommodation = idAccommodation;
         this.dateFrom = dateFrom;
         this.dateTo = dateTo;
