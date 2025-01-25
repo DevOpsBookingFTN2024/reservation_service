@@ -93,6 +93,7 @@ public class GuestReservationService {
 
         Reservation newReservation = new Reservation(
                 userDetails.getUsername(),
+                accommodationDetails.getHost(),
                 accommodationId,
                 createReservationRequest.getDateFrom(),
                 createReservationRequest.getDateTo(),
@@ -164,7 +165,7 @@ public class GuestReservationService {
     }
 
     //rezervacija je na cekanju
-    public List<ReservationDTO> getMyPendingReservationsGuest(String jwtToken) {
+    public List<ReservationDTO> getMyPendingReservationsGuest(String jwtToken, UUID idAccommodation) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -176,12 +177,18 @@ public class GuestReservationService {
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
-                .map(ReservationMapper::toReservationDTO)
+                .filter(reservation -> idAccommodation == null ||
+                        reservation.getIdAccommodation().equals(idAccommodation))
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
                 .toList();
     }
 
     //rezervacija je prihvacena
-    public List<ReservationDTO> getMyAcceptedReservationsGuest(String jwtToken) {
+    public List<ReservationDTO> getMyAcceptedReservationsGuest(String jwtToken, UUID idAccommodation) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -193,14 +200,20 @@ public class GuestReservationService {
         return reservationRepository.findByGuest(userDetails.getUsername())
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.ACCEPTED)
-                .map(ReservationMapper::toReservationDTO)
+                .filter(reservation -> idAccommodation == null ||
+                        reservation.getIdAccommodation().equals(idAccommodation))
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
                 .toList();
     }
 
     //rezervacija je odbijena
     //rezervacija je otkazana
     //rezervacija je uspesno prosla
-    public List<ReservationDTO> getMyPastReservationsGuest(String jwtToken) {
+    public List<ReservationDTO> getMyPastReservationsGuest(String jwtToken, UUID idAccommodation) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -214,7 +227,45 @@ public class GuestReservationService {
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.DECLINED ||
                                        reservation.getReservationStatus() == EReservationStatus.CANCELLED ||
                                        reservation.getReservationStatus() == EReservationStatus.PASSED)
-                .map(ReservationMapper::toReservationDTO)
+                .filter(reservation -> idAccommodation == null ||
+                        reservation.getIdAccommodation().equals(idAccommodation))
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
                 .toList();
+    }
+
+    public boolean isGuestHasSuccessfullyPassedReservationHost(String host, String jwtToken) {
+        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
+        if (userDetails == null) {
+            throw new IllegalStateException("User details could not be retrieved.");
+        }
+        if (!userDetails.getRoles().contains("ROLE_GUEST")) {
+            throw new SecurityException("User do not have permission for this action.");
+        }
+
+        List<Reservation> hostSuccessfullyPassedReservations = reservationRepository
+                .findByHostAndReservationStatus(host, EReservationStatus.PASSED);
+
+        return hostSuccessfullyPassedReservations.stream()
+                .anyMatch(reservation -> reservation.getGuest().equals(userDetails.getUsername()));
+    }
+
+    public boolean isGuestHasSuccessfullyPassedReservationAccommodation(UUID idAccommodation, String jwtToken) {
+        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
+        if (userDetails == null) {
+            throw new IllegalStateException("User details could not be retrieved.");
+        }
+        if (!userDetails.getRoles().contains("ROLE_GUEST")) {
+            throw new SecurityException("User do not have permission for this action.");
+        }
+
+        List<Reservation> accommodationSuccessfullyPassedReservations = reservationRepository
+                .findByIdAccommodationAndReservationStatus(idAccommodation, EReservationStatus.PASSED);
+
+        return accommodationSuccessfullyPassedReservations.stream()
+                .anyMatch(reservation -> reservation.getGuest().equals(userDetails.getUsername()));
     }
 }

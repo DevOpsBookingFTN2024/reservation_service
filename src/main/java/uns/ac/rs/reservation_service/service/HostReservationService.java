@@ -153,11 +153,21 @@ public class HostReservationService {
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
                 .filter(reservation -> reservation.getDateFrom().isAfter(LocalDate.now()))
-                .map(ReservationMapper::toReservationDTO)
-                .collect(Collectors.toList());
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
+                .toList();
     }
 
     private boolean reservationsOverlap(LocalDate startDate1, LocalDate endDate1, LocalDate startDate2, LocalDate endDate2) {
         return startDate1.isBefore(endDate2) && endDate1.isAfter(startDate2);
+    }
+
+    private Integer canceledReservationsNumberGuest(String guest) {
+        List<Reservation> canceledReservations = reservationRepository
+                .findByGuestAndReservationStatus(guest, EReservationStatus.CANCELLED);
+        return canceledReservations.size();
     }
 }

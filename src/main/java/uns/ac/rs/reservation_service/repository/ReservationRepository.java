@@ -14,4 +14,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     List<Reservation> findByIdAccommodation(UUID idAccommodation);
 
     List<Reservation> findByReservationStatus(EReservationStatus reservationStatus);
+
+    List<Reservation> findByGuestAndReservationStatus(String guest, EReservationStatus reservationStatus);
+
+    List<Reservation> findByHostAndReservationStatus(String host, EReservationStatus reservationStatus);
+
+    List<Reservation> findByIdAccommodationAndReservationStatus(UUID idAccommodation,
+                                                                EReservationStatus reservationStatus);
 }

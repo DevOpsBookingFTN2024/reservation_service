@@ -31,6 +31,4 @@ public class AccommodationDTO {
     private String pricingStrategy;
 
     private String approvalStrategy;
-
-    private Set<String> facilityNames;
 }

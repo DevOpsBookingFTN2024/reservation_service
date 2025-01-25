@@ -16,6 +16,8 @@ public class ReservationDTO {
 
     private String guest;
 
+    private String host;
+
     private UUID idAccommodation;
 
     private LocalDate dateFrom;
@@ -27,4 +29,8 @@ public class ReservationDTO {
     private Double totalPrice;
 
     private String reservationStatus;
+
+    private AccommodationDTO accommodation;
+
+    private Integer canceledReservations;
 }
