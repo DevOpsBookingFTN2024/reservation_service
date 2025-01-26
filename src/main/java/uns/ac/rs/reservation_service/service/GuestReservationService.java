@@ -101,15 +101,8 @@ public class GuestReservationService {
         );
 
         Double totalPrice = 0.0;
-        //izmeniti
-        ////////////////////////////////////////
         Double pricePerGuest = convertedAvailabilities.stream()
                 .map(AvailabilityDTO::getPricePerGuest)
-                .findFirst()
-                .orElse(null);
-
-        Double pricePerUnit = convertedAvailabilities.stream()
-                .map(AvailabilityDTO::getPricePerUnit)
                 .findFirst()
                 .orElse(null);
 
@@ -119,9 +112,8 @@ public class GuestReservationService {
                     .sum();
         } else {
             if (pricePerGuest != null)
-                totalPrice = pricePerGuest * createReservationRequest.getNumberOfGuests() * dates.size();
+                totalPrice = pricePerGuest * createReservationRequest.getNumberOfGuests() * (dates.size()-1);
         }
-        ////////////////////////////////////////
         newReservation.setTotalPrice(totalPrice);
 
         if (Objects.equals(accommodationDetails.getApprovalStrategy(), "AUTOMATIC")) {
