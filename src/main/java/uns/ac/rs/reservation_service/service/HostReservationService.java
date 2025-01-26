@@ -85,7 +85,7 @@ public class HostReservationService {
         if ((reservation.getReservationStatus() == EReservationStatus.PENDING) &&
                 reservation.getDateFrom().isAfter(LocalDate.now())) {
             List<ReservationDTO> reservationsToCheck =
-                    getAllPendingReservationsByAccommodation(reservation.getIdAccommodation());
+                    getAllPendingReservationsByAccommodation( reservation.getIdAccommodation());
 
             for (ReservationDTO dto : reservationsToCheck) {
                 if (dto.getId().equals(reservation.getId())) continue;
@@ -148,11 +148,33 @@ public class HostReservationService {
 
     //rezervacija je na cekanju
     //datum pocetka rezervacije je posle danasnjeg datuma
-    public List<ReservationDTO> getAllPendingReservationsByAccommodation(UUID accommodationId) {
+    private List<ReservationDTO> getAllPendingReservationsByAccommodation(UUID accommodationId) {
         return reservationRepository.findByIdAccommodation(accommodationId)
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
                 .filter(reservation -> reservation.getDateFrom().isAfter(LocalDate.now()))
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
+                .toList();
+    }
+
+    public List<ReservationDTO> getAllPendingReservations(String jwtToken, UUID accommodationId) {
+        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
+        if (userDetails == null) {
+            throw new IllegalStateException("User details could not be retrieved.");
+        }
+        if (!userDetails.getRoles().contains("ROLE_HOST")) {
+            throw new SecurityException("User do not have permission for this action.");
+        }
+
+        return reservationRepository.findByHost(userDetails.getUsername())
+                .stream()
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
+                .filter(reservation -> accommodationId == null ||
+                        reservation.getIdAccommodation().equals(accommodationId))
                 .map(reservation -> {
                     AccommodationDTO accommodationDetails = accommodationServiceClient
                             .getAccommodationDetails(reservation.getIdAccommodation());
@@ -170,4 +192,55 @@ public class HostReservationService {
                 .findByGuestAndReservationStatus(guest, EReservationStatus.CANCELLED);
         return canceledReservations.size();
     }
+
+    //rezervacija je prihvacena
+    public List<ReservationDTO> getAcceptedReservations(String jwtToken, UUID accommodationId) {
+        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
+        if (userDetails == null) {
+            throw new IllegalStateException("User details could not be retrieved.");
+        }
+        if (!userDetails.getRoles().contains("ROLE_HOST")) {
+            throw new SecurityException("User do not have permission for this action.");
+        }
+
+        return reservationRepository.findByHost(userDetails.getUsername())
+                .stream()
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.ACCEPTED)
+                .filter(reservation -> accommodationId == null ||
+                        reservation.getIdAccommodation().equals(accommodationId))
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
+                .toList();
+    }
+
+    //rezervacija je odbijena
+    //rezervacija je otkazana
+    //rezervacija je uspesno prosla
+    public List<ReservationDTO> getPassedReservations(String jwtToken, UUID accommodationId) {
+        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
+        if (userDetails == null) {
+            throw new IllegalStateException("User details could not be retrieved.");
+        }
+        if (!userDetails.getRoles().contains("ROLE_HOST")) {
+            throw new SecurityException("User do not have permission for this action.");
+        }
+
+        return reservationRepository.findByHost(userDetails.getUsername())
+                .stream()
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.DECLINED ||
+                        reservation.getReservationStatus() == EReservationStatus.CANCELLED ||
+                        reservation.getReservationStatus() == EReservationStatus.PASSED)
+                .filter(reservation -> accommodationId == null ||
+                        reservation.getIdAccommodation().equals(accommodationId))
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
+                .toList();
+    }
+
 }
