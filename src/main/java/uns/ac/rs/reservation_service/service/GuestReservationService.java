@@ -143,12 +143,17 @@ public class GuestReservationService {
             throw new SecurityException("User did not create this reservation.");
         }
 
-        if ((reservation.getReservationStatus() == EReservationStatus.ACCEPTED) &&
-                LocalDate.now().isBefore(reservation.getDateFrom().minusDays(2))) {
-            accommodationServiceClient.releaseAvailabilities(reservation.getIdAccommodation(),
-                    reservation.getDateFrom(), reservation.getDateTo(), jwtToken);
-            reservation.setReservationStatus(EReservationStatus.CANCELLED);
+        if ((reservation.getReservationStatus() == EReservationStatus.ACCEPTED ||
+             reservation.getReservationStatus() == EReservationStatus.PENDING) &&
+             LocalDate.now().isBefore(reservation.getDateFrom().minusDays(2)))  {
+            accommodationServiceClient.releaseAvailabilities(
+                    reservation.getIdAccommodation(),
+                    reservation.getDateFrom(),
+                    reservation.getDateTo(),
+                    jwtToken
+            );
 
+            reservation.setReservationStatus(EReservationStatus.CANCELLED);
             reservationRepository.save(reservation);
             return new MessageResponse("Reservation cancelled successfully.");
         } else {
@@ -229,6 +234,7 @@ public class GuestReservationService {
                 .toList();
     }
 
+    //metoda koju koristi RatingService
     public boolean isGuestHasSuccessfullyPassedReservationHost(String host, String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
@@ -245,6 +251,7 @@ public class GuestReservationService {
                 .anyMatch(reservation -> reservation.getGuest().equals(userDetails.getUsername()));
     }
 
+    //metoda koju koristi RatingService
     public boolean isGuestHasSuccessfullyPassedReservationAccommodation(UUID idAccommodation, String jwtToken) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
@@ -259,5 +266,13 @@ public class GuestReservationService {
 
         return accommodationSuccessfullyPassedReservations.stream()
                 .anyMatch(reservation -> reservation.getGuest().equals(userDetails.getUsername()));
+    }
+
+    //metoda koju koristi UserService
+    public boolean isGuestHasAcceptedReservation(String guest) {
+        List<Reservation> guestAcceptedReservations = reservationRepository
+                .findByGuestAndReservationStatus(guest, EReservationStatus.ACCEPTED);
+
+        return !guestAcceptedReservations.isEmpty();
     }
 }
