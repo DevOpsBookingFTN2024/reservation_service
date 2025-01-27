@@ -61,4 +61,10 @@ public class HostReservationController {
                 .getPassedReservations(jwtToken, idAccommodation);
         return ResponseEntity.ok(declinedReservations);
     }
+
+    @GetMapping("/has-accepted-reservation/{host}")
+    public ResponseEntity<?> isHostHasAcceptedReservation(@PathVariable String host) {
+        boolean result = hostReservationService.isHostHasAcceptedReservation(host);
+        return ResponseEntity.ok(result);
+    }
 }

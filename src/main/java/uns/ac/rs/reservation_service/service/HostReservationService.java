@@ -183,16 +183,6 @@ public class HostReservationService {
                 .toList();
     }
 
-    private boolean reservationsOverlap(LocalDate startDate1, LocalDate endDate1, LocalDate startDate2, LocalDate endDate2) {
-        return startDate1.isBefore(endDate2) && endDate1.isAfter(startDate2);
-    }
-
-    private Integer canceledReservationsNumberGuest(String guest) {
-        List<Reservation> canceledReservations = reservationRepository
-                .findByGuestAndReservationStatus(guest, EReservationStatus.CANCELLED);
-        return canceledReservations.size();
-    }
-
     //rezervacija je prihvacena
     public List<ReservationDTO> getAcceptedReservations(String jwtToken, UUID accommodationId) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
@@ -243,4 +233,21 @@ public class HostReservationService {
                 .toList();
     }
 
+    //metoda koju koristi UserService
+    public boolean isHostHasAcceptedReservation(String host) {
+        List<Reservation> hostAcceptedReservations = reservationRepository
+                .findByHostAndReservationStatus(host, EReservationStatus.ACCEPTED);
+
+        return !hostAcceptedReservations.isEmpty();
+    }
+
+    private boolean reservationsOverlap(LocalDate startDate1, LocalDate endDate1, LocalDate startDate2, LocalDate endDate2) {
+        return startDate1.isBefore(endDate2) && endDate1.isAfter(startDate2);
+    }
+
+    private Integer canceledReservationsNumberGuest(String guest) {
+        List<Reservation> canceledReservations = reservationRepository
+                .findByGuestAndReservationStatus(guest, EReservationStatus.CANCELLED);
+        return canceledReservations.size();
+    }
 }

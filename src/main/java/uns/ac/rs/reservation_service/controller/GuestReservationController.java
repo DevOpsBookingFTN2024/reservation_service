@@ -79,4 +79,10 @@ public class GuestReservationController {
                 .isGuestHasSuccessfullyPassedReservationAccommodation(idAccommodation, jwtToken);
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/has-accepted-reservation/{guest}")
+    public ResponseEntity<?> isGuestHasAcceptedReservation(@PathVariable String guest) {
+        boolean result = guestReservationService.isGuestHasAcceptedReservation(guest);
+        return ResponseEntity.ok(result);
+    }
 }
