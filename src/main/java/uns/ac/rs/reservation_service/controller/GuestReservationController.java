@@ -20,11 +20,11 @@ public class GuestReservationController {
 
     @PostMapping("/create/{accommodationId}")
     public ResponseEntity<?> createReservationGuest(@PathVariable UUID accommodationId,
-                                                    @Valid @RequestBody CreateReservationRequest createReservationRequest,
-                                                    @RequestHeader("Authorization") String authorizationHeader) {
+                             @Valid @RequestBody CreateReservationRequest createReservationRequest,
+                             @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        MessageResponse messageResponse = guestReservationService.createReservationGuest(
-                accommodationId, createReservationRequest, jwtToken);
+        MessageResponse messageResponse = guestReservationService
+                .createReservationGuest(accommodationId, createReservationRequest, jwtToken);
         return ResponseEntity.ok(messageResponse);
     }
 
@@ -63,6 +63,7 @@ public class GuestReservationController {
         return ResponseEntity.ok(declinedReservations);
     }
 
+    //endpoint koristi RatingService
     @GetMapping("/has-successfully-passed-host/{host}")
     public ResponseEntity<?> isGuestHasSuccessfullyPassedReservationHost(@PathVariable String host,
                              @RequestHeader("Authorization") String authorizationHeader) {
@@ -71,6 +72,7 @@ public class GuestReservationController {
         return ResponseEntity.ok(result);
     }
 
+    //endpoint koristi RatingService
     @GetMapping("/has-successfully-passed-accommodation/{idAccommodation}")
     public ResponseEntity<?> isGuestHasSuccessfullyPassedReservationAccommodation(@PathVariable UUID idAccommodation,
                              @RequestHeader("Authorization") String authorizationHeader) {
@@ -80,9 +82,19 @@ public class GuestReservationController {
         return ResponseEntity.ok(result);
     }
 
+    //endpoint koristi UserService
     @GetMapping("/has-accepted-reservation/{guest}")
     public ResponseEntity<?> isGuestHasAcceptedReservation(@PathVariable String guest) {
         boolean result = guestReservationService.isGuestHasAcceptedReservation(guest);
         return ResponseEntity.ok(result);
+    }
+
+    //endpoint koristi UserService
+    @PutMapping("/cancel-pending-reservations")
+    public ResponseEntity<?> cancelMyPendingReservationsGuest(
+                             @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        MessageResponse messageResponse = guestReservationService.cancelMyPendingReservationsGuest(jwtToken);
+        return ResponseEntity.ok(messageResponse);
     }
 }

@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import uns.ac.rs.reservation_service.dto.ReservationDTO;
 import uns.ac.rs.reservation_service.dto.response.MessageResponse;
 import uns.ac.rs.reservation_service.service.HostReservationService;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -19,10 +18,10 @@ public class HostReservationController {
 
     @PutMapping("/accept/{reservationId}")
     public ResponseEntity<?> acceptReservationHost(@PathVariable UUID reservationId,
-                                                    @RequestHeader("Authorization") String authorizationHeader) {
+                                                   @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        MessageResponse messageResponse = hostReservationService.acceptReservationHost(
-                reservationId, jwtToken);
+        MessageResponse messageResponse = hostReservationService
+                .acceptReservationHost(reservationId, jwtToken);
         return ResponseEntity.ok(messageResponse);
     }
 
@@ -30,41 +29,58 @@ public class HostReservationController {
     public ResponseEntity<?> declineReservationHost(@PathVariable UUID reservationId,
                                                     @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        MessageResponse messageResponse = hostReservationService.declineReservationHost(
-                reservationId, jwtToken);
+        MessageResponse messageResponse = hostReservationService
+                .declineReservationHost(reservationId, jwtToken);
         return ResponseEntity.ok(messageResponse);
     }
 
     @GetMapping("/pending")
-    public ResponseEntity<?> getMyPendingReservationsGuest(@RequestHeader("Authorization") String authorizationHeader,
-                                                           @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
+    public ResponseEntity<?> getMyPendingReservationsHost(@RequestHeader("Authorization") String authorizationHeader,
+                             @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         List<ReservationDTO> pendingReservations = hostReservationService
-                .getAllPendingReservations(jwtToken, idAccommodation);
+                .getMyPendingReservationsHost(jwtToken, idAccommodation);
         return ResponseEntity.ok(pendingReservations);
     }
 
     @GetMapping("/accepted")
-    public ResponseEntity<?> getMyAcceptedReservationsGuest(@RequestHeader("Authorization") String authorizationHeader,
-                                                            @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
+    public ResponseEntity<?> getMyAcceptedReservationsHost(@RequestHeader("Authorization") String authorizationHeader,
+                             @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         List<ReservationDTO> acceptedReservations = hostReservationService
-                .getAcceptedReservations(jwtToken, idAccommodation);
+                .getMyAcceptedReservationsHost(jwtToken, idAccommodation);
         return ResponseEntity.ok(acceptedReservations);
     }
 
     @GetMapping("/past")
-    public ResponseEntity<?> getMyPastReservationsGuest(@RequestHeader("Authorization") String authorizationHeader,
-                                                        @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
+    public ResponseEntity<?> getMyPastReservationsHost(@RequestHeader("Authorization") String authorizationHeader,
+                             @RequestParam(value = "idAccommodation", required = false) UUID idAccommodation) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         List<ReservationDTO> declinedReservations = hostReservationService
-                .getPassedReservations(jwtToken, idAccommodation);
+                .getMyPastReservationsHost(jwtToken, idAccommodation);
         return ResponseEntity.ok(declinedReservations);
     }
 
+    //endpoint koristi UserService
     @GetMapping("/has-accepted-reservation/{host}")
     public ResponseEntity<?> isHostHasAcceptedReservation(@PathVariable String host) {
         boolean result = hostReservationService.isHostHasAcceptedReservation(host);
+        return ResponseEntity.ok(result);
+    }
+
+    //endpoint koristi UserService
+    @PutMapping("/decline-pending-reservations")
+    public ResponseEntity<?> declineMyPendingReservationsHost(
+                             @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        MessageResponse messageResponse = hostReservationService.declineMyPendingReservationsHost(jwtToken);
+        return ResponseEntity.ok(messageResponse);
+    }
+
+    //endpoint koristi AccommodationService
+    @GetMapping("/accommodation/has-accepted-reservation/{idAccommodation}")
+    public ResponseEntity<?> isAccommodationHasAcceptedReservation(@PathVariable UUID idAccommodation) {
+        boolean result = hostReservationService.isAccommodationHasAcceptedReservation(idAccommodation);
         return ResponseEntity.ok(result);
     }
 }
