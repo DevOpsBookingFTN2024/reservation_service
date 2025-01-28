@@ -21,7 +21,9 @@ import java.util.stream.Collectors;
 @Transactional
 public class HostReservationService {
     private final ReservationRepository reservationRepository;
+
     private final UserServiceClient userServiceClient;
+
     private final AccommodationServiceClient accommodationServiceClient;
 
     public HostReservationService(ReservationRepository reservationRepository,
@@ -77,21 +79,23 @@ public class HostReservationService {
             selectedAvailabilities.add(availability);
         }
 
-        List<AvailabilityDTO> convertedAvailabilities = selectedAvailabilities.stream()
+        List<AvailabilityDTO> convertedAvailabilities = selectedAvailabilities
+                .stream()
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();
 
-        if ((reservation.getReservationStatus() == EReservationStatus.PENDING) &&
-                reservation.getDateFrom().isAfter(LocalDate.now())) {
+        if (reservation.getReservationStatus() == EReservationStatus.PENDING) {
             List<ReservationDTO> reservationsToCheck =
-                    getAllPendingReservationsByAccommodation( reservation.getIdAccommodation());
+                    getAllPendingReservationsByAccommodation(reservation.getIdAccommodation());
 
             for (ReservationDTO dto : reservationsToCheck) {
                 if (dto.getId().equals(reservation.getId())) continue;
 
-                if (reservationsOverlap(reservation.getDateFrom(), reservation.getDateTo(),
-                                        dto.getDateFrom(), dto.getDateTo())) {
+                if (reservationsOverlap(reservation.getDateFrom(),
+                                        reservation.getDateTo(),
+                                        dto.getDateFrom(),
+                                        dto.getDateTo())) {
                     Reservation reservationToDecline = reservationRepository.findById(dto.getId())
                             .orElseThrow(() ->
                                     new NoSuchElementException("Reservation not found with id: " + dto.getId()));
@@ -107,6 +111,7 @@ public class HostReservationService {
             reservation.setReservationStatus(EReservationStatus.ACCEPTED);
 
             reservationRepository.save(reservation);
+
             return new MessageResponse("Reservation accepted successfully.");
         } else {
             throw new SecurityException("You cannot accept this reservation.");
@@ -135,11 +140,11 @@ public class HostReservationService {
             throw new SecurityException("User is not the owner of this accommodation.");
         }
 
-        if ((reservation.getReservationStatus() == EReservationStatus.PENDING) &&
-                reservation.getDateFrom().isAfter(LocalDate.now())) {
+        if (reservation.getReservationStatus() == EReservationStatus.PENDING) {
             reservation.setReservationStatus(EReservationStatus.DECLINED);
 
             reservationRepository.save(reservation);
+
             return new MessageResponse("Reservation declined successfully.");
         } else {
             throw new SecurityException("You cannot decline this reservation.");
@@ -147,21 +152,7 @@ public class HostReservationService {
     }
 
     //rezervacija je na cekanju
-    //datum pocetka rezervacije je posle danasnjeg datuma
-    private List<ReservationDTO> getAllPendingReservationsByAccommodation(UUID accommodationId) {
-        return reservationRepository.findByIdAccommodation(accommodationId)
-                .stream()
-                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
-                .filter(reservation -> reservation.getDateFrom().isAfter(LocalDate.now()))
-                .map(reservation -> {
-                    AccommodationDTO accommodationDetails = accommodationServiceClient
-                            .getAccommodationDetails(reservation.getIdAccommodation());
-                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
-                })
-                .toList();
-    }
-
-    public List<ReservationDTO> getAllPendingReservations(String jwtToken, UUID accommodationId) {
+    public List<ReservationDTO> getMyPendingReservationsHost(String jwtToken, UUID accommodationId) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -178,13 +169,15 @@ public class HostReservationService {
                 .map(reservation -> {
                     AccommodationDTO accommodationDetails = accommodationServiceClient
                             .getAccommodationDetails(reservation.getIdAccommodation());
-                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                    Integer canceledReservations = canceledReservationsNumberGuest(reservation.getGuest());
+
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails, canceledReservations);
                 })
                 .toList();
     }
 
     //rezervacija je prihvacena
-    public List<ReservationDTO> getAcceptedReservations(String jwtToken, UUID accommodationId) {
+    public List<ReservationDTO> getMyAcceptedReservationsHost(String jwtToken, UUID accommodationId) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -209,7 +202,7 @@ public class HostReservationService {
     //rezervacija je odbijena
     //rezervacija je otkazana
     //rezervacija je uspesno prosla
-    public List<ReservationDTO> getPassedReservations(String jwtToken, UUID accommodationId) {
+    public List<ReservationDTO> getMyPastReservationsHost(String jwtToken, UUID accommodationId) {
         UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
         if (userDetails == null) {
             throw new IllegalStateException("User details could not be retrieved.");
@@ -221,8 +214,8 @@ public class HostReservationService {
         return reservationRepository.findByHost(userDetails.getUsername())
                 .stream()
                 .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.DECLINED ||
-                        reservation.getReservationStatus() == EReservationStatus.CANCELLED ||
-                        reservation.getReservationStatus() == EReservationStatus.PASSED)
+                                       reservation.getReservationStatus() == EReservationStatus.CANCELLED ||
+                                       reservation.getReservationStatus() == EReservationStatus.PASSED)
                 .filter(reservation -> accommodationId == null ||
                         reservation.getIdAccommodation().equals(accommodationId))
                 .map(reservation -> {
@@ -233,7 +226,7 @@ public class HostReservationService {
                 .toList();
     }
 
-    //metoda koju koristi UserService
+    //metodu koristi UserService
     public boolean isHostHasAcceptedReservation(String host) {
         List<Reservation> hostAcceptedReservations = reservationRepository
                 .findByHostAndReservationStatus(host, EReservationStatus.ACCEPTED);
@@ -241,7 +234,52 @@ public class HostReservationService {
         return !hostAcceptedReservations.isEmpty();
     }
 
-    private boolean reservationsOverlap(LocalDate startDate1, LocalDate endDate1, LocalDate startDate2, LocalDate endDate2) {
+    //metodu koristi UserService
+    public MessageResponse declineMyPendingReservationsHost(String jwtToken) {
+        UserDTO userDetails = userServiceClient.getUserDetails(jwtToken);
+        if (userDetails == null) {
+            throw new IllegalStateException("User details could not be retrieved.");
+        }
+        if (!userDetails.getRoles().contains("ROLE_HOST")) {
+            throw new SecurityException("User do not have permission for this action.");
+        }
+
+        List<Reservation> hostPendingReservations = reservationRepository
+                .findByHostAndReservationStatus(userDetails.getUsername(), EReservationStatus.PENDING);
+
+        for (Reservation reservation : hostPendingReservations) {
+            reservation.setReservationStatus(EReservationStatus.DECLINED);
+        }
+
+        reservationRepository.saveAll(hostPendingReservations);
+
+        return new MessageResponse("Reservations declined successfully.");
+    }
+
+    //metodu koristi AccommodationService
+    public boolean isAccommodationHasAcceptedReservation(UUID idAccommodation) {
+        List<Reservation> accommodationAcceptedReservations = reservationRepository
+                .findByIdAccommodationAndReservationStatus(idAccommodation, EReservationStatus.ACCEPTED);
+
+        return !accommodationAcceptedReservations.isEmpty();
+    }
+
+    private List<ReservationDTO> getAllPendingReservationsByAccommodation(UUID accommodationId) {
+        return reservationRepository.findByIdAccommodation(accommodationId)
+                .stream()
+                .filter(reservation -> reservation.getReservationStatus() == EReservationStatus.PENDING)
+                .map(reservation -> {
+                    AccommodationDTO accommodationDetails = accommodationServiceClient
+                            .getAccommodationDetails(reservation.getIdAccommodation());
+                    return ReservationMapper.toReservationDTO(reservation, accommodationDetails);
+                })
+                .toList();
+    }
+
+    private boolean reservationsOverlap(LocalDate startDate1,
+                                        LocalDate endDate1,
+                                        LocalDate startDate2,
+                                        LocalDate endDate2) {
         return startDate1.isBefore(endDate2) && endDate1.isAfter(startDate2);
     }
 

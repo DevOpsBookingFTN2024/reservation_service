@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import uns.ac.rs.reservation_service.dto.AccommodationDTO;
 import uns.ac.rs.reservation_service.dto.AvailabilityDTO;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
