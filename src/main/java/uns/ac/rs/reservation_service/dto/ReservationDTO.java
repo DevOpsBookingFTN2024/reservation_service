@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uns.ac.rs.reservation_service.dto.client.AccommodationDTO;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -19,6 +20,8 @@ public class ReservationDTO {
     private String host;
 
     private UUID idAccommodation;
+
+    private String accommodationName;
 
     private LocalDate dateFrom;
 

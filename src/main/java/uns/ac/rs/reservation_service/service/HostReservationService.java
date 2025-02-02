@@ -2,16 +2,19 @@ package uns.ac.rs.reservation_service.service;
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import uns.ac.rs.reservation_service.dto.AccommodationDTO;
+import uns.ac.rs.reservation_service.dto.client.AccommodationDTO;
 import uns.ac.rs.reservation_service.dto.AvailabilityDTO;
 import uns.ac.rs.reservation_service.dto.ReservationDTO;
-import uns.ac.rs.reservation_service.dto.UserDTO;
+import uns.ac.rs.reservation_service.dto.client.CreateNotificationRequest;
+import uns.ac.rs.reservation_service.dto.client.UserDTO;
 import uns.ac.rs.reservation_service.dto.response.MessageResponse;
 import uns.ac.rs.reservation_service.mapper.ReservationMapper;
 import uns.ac.rs.reservation_service.model.EReservationStatus;
 import uns.ac.rs.reservation_service.model.Reservation;
+import uns.ac.rs.reservation_service.model.client.ENotificationType;
 import uns.ac.rs.reservation_service.repository.ReservationRepository;
 import uns.ac.rs.reservation_service.service.client.AccommodationServiceClient;
+import uns.ac.rs.reservation_service.service.client.NotificationServiceClient;
 import uns.ac.rs.reservation_service.service.client.UserServiceClient;
 import java.time.LocalDate;
 import java.util.*;
@@ -26,12 +29,16 @@ public class HostReservationService {
 
     private final AccommodationServiceClient accommodationServiceClient;
 
+    private final NotificationServiceClient notificationServiceClient;
+
     public HostReservationService(ReservationRepository reservationRepository,
-                              UserServiceClient userServiceClient,
-                              AccommodationServiceClient accommodationServiceClient) {
+                                  UserServiceClient userServiceClient,
+                                  AccommodationServiceClient accommodationServiceClient,
+                                  NotificationServiceClient notificationServiceClient) {
         this.reservationRepository = reservationRepository;
         this.userServiceClient = userServiceClient;
         this.accommodationServiceClient = accommodationServiceClient;
+        this.notificationServiceClient = notificationServiceClient;
     }
 
     public MessageResponse acceptReservationHost(UUID reservationId, String jwtToken) {
@@ -103,6 +110,18 @@ public class HostReservationService {
                     reservationToDecline.setReservationStatus(EReservationStatus.DECLINED);
 
                     reservationRepository.save(reservationToDecline);
+
+                    CreateNotificationRequest createNotificationRequest = new CreateNotificationRequest(
+                            reservation.getGuest(),
+                            "Host "
+                                    + userDetails.getUsername()
+                                    + " declined your reservation request for accommodation "
+                                    + reservation.getAccommodationName()
+                                    + ".",
+                            ENotificationType.RESERVATION_RESPONSE.name()
+                    );
+
+                    notificationServiceClient.createNotification(createNotificationRequest, jwtToken);
                 }
             }
 
@@ -111,6 +130,18 @@ public class HostReservationService {
             reservation.setReservationStatus(EReservationStatus.ACCEPTED);
 
             reservationRepository.save(reservation);
+
+            CreateNotificationRequest createNotificationRequest = new CreateNotificationRequest(
+                    reservation.getGuest(),
+                    "Host "
+                            + userDetails.getUsername()
+                            + " accepted your reservation request for accommodation "
+                            + reservation.getAccommodationName()
+                            + ".",
+                    ENotificationType.RESERVATION_RESPONSE.name()
+            );
+
+            notificationServiceClient.createNotification(createNotificationRequest, jwtToken);
 
             return new MessageResponse("Reservation accepted successfully.");
         } else {
@@ -144,6 +175,18 @@ public class HostReservationService {
             reservation.setReservationStatus(EReservationStatus.DECLINED);
 
             reservationRepository.save(reservation);
+
+            CreateNotificationRequest createNotificationRequest = new CreateNotificationRequest(
+                    reservation.getGuest(),
+                    "Host "
+                            + userDetails.getUsername()
+                            + " declined your reservation request for accommodation "
+                            + reservation.getAccommodationName()
+                            + ".",
+                    ENotificationType.RESERVATION_RESPONSE.name()
+            );
+
+            notificationServiceClient.createNotification(createNotificationRequest, jwtToken);
 
             return new MessageResponse("Reservation declined successfully.");
         } else {
