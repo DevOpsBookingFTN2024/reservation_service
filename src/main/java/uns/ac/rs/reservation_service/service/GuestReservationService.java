@@ -2,17 +2,20 @@ package uns.ac.rs.reservation_service.service;
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import uns.ac.rs.reservation_service.dto.AccommodationDTO;
+import uns.ac.rs.reservation_service.dto.client.AccommodationDTO;
 import uns.ac.rs.reservation_service.dto.AvailabilityDTO;
 import uns.ac.rs.reservation_service.dto.ReservationDTO;
+import uns.ac.rs.reservation_service.dto.client.CreateNotificationRequest;
 import uns.ac.rs.reservation_service.dto.request.CreateReservationRequest;
 import uns.ac.rs.reservation_service.dto.response.MessageResponse;
 import uns.ac.rs.reservation_service.mapper.ReservationMapper;
 import uns.ac.rs.reservation_service.model.EReservationStatus;
 import uns.ac.rs.reservation_service.model.Reservation;
+import uns.ac.rs.reservation_service.model.client.ENotificationType;
 import uns.ac.rs.reservation_service.repository.ReservationRepository;
-import uns.ac.rs.reservation_service.dto.UserDTO;
+import uns.ac.rs.reservation_service.dto.client.UserDTO;
 import uns.ac.rs.reservation_service.service.client.AccommodationServiceClient;
+import uns.ac.rs.reservation_service.service.client.NotificationServiceClient;
 import uns.ac.rs.reservation_service.service.client.UserServiceClient;
 import java.time.LocalDate;
 import java.util.*;
@@ -27,12 +30,16 @@ public class GuestReservationService {
 
     private final AccommodationServiceClient accommodationServiceClient;
 
+    private final NotificationServiceClient notificationServiceClient;
+
     public GuestReservationService(ReservationRepository reservationRepository,
                               UserServiceClient userServiceClient,
-                              AccommodationServiceClient accommodationServiceClient) {
+                              AccommodationServiceClient accommodationServiceClient,
+                              NotificationServiceClient notificationServiceClient) {
         this.reservationRepository = reservationRepository;
         this.userServiceClient = userServiceClient;
         this.accommodationServiceClient = accommodationServiceClient;
+        this.notificationServiceClient = notificationServiceClient;
     }
 
     public MessageResponse createReservationGuest(UUID accommodationId,
@@ -99,6 +106,7 @@ public class GuestReservationService {
                 userDetails.getUsername(),
                 accommodationDetails.getHost(),
                 accommodationId,
+                accommodationDetails.getName(),
                 createReservationRequest.getDateFrom(),
                 createReservationRequest.getDateTo(),
                 createReservationRequest.getNumberOfGuests()
@@ -130,6 +138,18 @@ public class GuestReservationService {
         }
 
         reservationRepository.save(newReservation);
+
+        CreateNotificationRequest createNotificationRequest = new CreateNotificationRequest(
+                newReservation.getHost(),
+                "Guest "
+                        + userDetails.getUsername()
+                        + " created reservation request for your accommodation "
+                        + newReservation.getAccommodationName()
+                        + ".",
+                ENotificationType.RESERVATION_REQUEST.name()
+        );
+
+        notificationServiceClient.createNotification(createNotificationRequest, jwtToken);
 
         return new MessageResponse("Reservation created successfully.");
     }
@@ -164,6 +184,18 @@ public class GuestReservationService {
             reservation.setReservationStatus(EReservationStatus.CANCELLED);
 
             reservationRepository.save(reservation);
+
+            CreateNotificationRequest createNotificationRequest = new CreateNotificationRequest(
+                    reservation.getHost(),
+                    "Guest "
+                            + userDetails.getUsername()
+                            + " cancelled reservation request for your accommodation "
+                            + reservation.getAccommodationName()
+                            + ".",
+                    ENotificationType.RESERVATION_CANCELED.name()
+            );
+
+            notificationServiceClient.createNotification(createNotificationRequest, jwtToken);
 
             return new MessageResponse("Reservation cancelled successfully.");
         } else {

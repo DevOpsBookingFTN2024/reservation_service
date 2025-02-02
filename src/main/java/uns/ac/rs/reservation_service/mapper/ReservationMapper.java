@@ -1,6 +1,6 @@
 package uns.ac.rs.reservation_service.mapper;
 
-import uns.ac.rs.reservation_service.dto.AccommodationDTO;
+import uns.ac.rs.reservation_service.dto.client.AccommodationDTO;
 import uns.ac.rs.reservation_service.dto.ReservationDTO;
 import uns.ac.rs.reservation_service.model.Reservation;
 
@@ -12,6 +12,7 @@ public class ReservationMapper {
                 .guest(reservation.getGuest())
                 .host(reservation.getHost())
                 .idAccommodation(reservation.getIdAccommodation())
+                .accommodationName(reservation.getAccommodationName())
                 .dateFrom(reservation.getDateFrom())
                 .dateTo(reservation.getDateTo())
                 .numberOfGuests(reservation.getNumberOfGuests())
@@ -30,6 +31,7 @@ public class ReservationMapper {
                 .guest(reservation.getGuest())
                 .host(reservation.getHost())
                 .idAccommodation(reservation.getIdAccommodation())
+                .accommodationName(reservation.getAccommodationName())
                 .dateFrom(reservation.getDateFrom())
                 .dateTo(reservation.getDateTo())
                 .numberOfGuests(reservation.getNumberOfGuests())

@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import uns.ac.rs.reservation_service.dto.UserDTO;
+import uns.ac.rs.reservation_service.dto.client.UserDTO;
 
 @Service
 public class UserServiceClient {
