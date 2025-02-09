@@ -1,14 +1,19 @@
+networks:
+  booking-network:
+    external: true
 services:
   postgresql-db-reservation:
     image: postgres:latest
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_DB: reservation_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
     volumes:
       - postgresql-db-reservation:/var/lib/postgresql/data
+    networks:
+      - booking-network
 
   reservation-service:
     build: .
@@ -18,10 +23,20 @@ services:
       SPRING_DATASOURCE_PASSWORD: admin
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     ports:
-      - "8081:8081"
+      - "8083:8083"
     depends_on:
       - postgresql-db-reservation
     restart: on-failure
+    networks:
+      - booking-network
 
+  adminer:
+      image: adminer:latest
+      ports:
+        - "10000:8080"
+      depends_on:
+        - postgresql-db-reservation
+      networks:
+        - booking-network
 volumes:
   postgresql-db-reservation:
