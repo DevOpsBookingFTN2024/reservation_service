@@ -168,9 +168,9 @@ public class GuestReservationService {
         }
 
         if ((reservation.getReservationStatus() == EReservationStatus.ACCEPTED &&
-                LocalDate.now().isBefore(reservation.getDateFrom().minusDays(2))) ||
+                LocalDate.now().isBefore(reservation.getDateFrom().minusDays(1))) ||
             (reservation.getReservationStatus() == EReservationStatus.PENDING &&
-                LocalDate.now().isBefore(reservation.getDateFrom().minusDays(1)))) {
+                LocalDate.now().isBefore(reservation.getDateFrom()))) {
             accommodationServiceClient.releaseAvailabilities(
                     reservation.getIdAccommodation(),
                     reservation.getDateFrom(),
